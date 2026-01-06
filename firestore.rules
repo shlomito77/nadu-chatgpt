@@ -1,0 +1,168 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.admin == true;
+    }
+
+    function isGroupMember(groupId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid));
+    }
+
+    function groupVisibility(groupId) {
+      return get(/databases/$(database)/documents/groups/$(groupId)).data.visibility;
+    }
+
+    function canReadGroup(groupId) {
+      let v = groupVisibility(groupId);
+      return v == "public"
+        || (v == "members" && isGroupMember(groupId))
+        || (v == "private" && isGroupMember(groupId))
+        || isAdmin();
+    }
+
+    function canWriteGroup(groupId) {
+      return isGroupMember(groupId) || isAdmin();
+    }
+
+    function isChatMember(chatId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/chats/$(chatId)/members/$(request.auth.uid));
+    }
+
+    // ---------- users ----------
+    match /users/{uid} {
+      allow read: if isSelf(uid) || isAdmin();
+      allow create: if isSelf(uid);
+      allow update: if isSelf(uid) || isAdmin();
+      allow delete: if false;
+    }
+
+    // ---------- groups ----------
+    match /groups/{groupId} {
+      allow read: if canReadGroup(groupId);
+
+      allow create: if isSignedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.visibility in ["public","members","private"];
+
+      allow update: if canWriteGroup(groupId);
+
+      allow delete: if isAdmin();
+    }
+
+    match /groups/{groupId}/members/{uid} {
+      allow read: if canReadGroup(groupId);
+
+      allow create: if isSelf(uid)
+        && exists(/databases/$(database)/documents/groups/$(groupId))
+        && groupVisibility(groupId) in ["public","members"];
+
+      allow delete: if isSelf(uid) || isAdmin();
+
+      allow update: if isAdmin();
+    }
+
+    // ---------- posts ----------
+    match /posts/{postId} {
+      // READ: allow signed-in users to read public posts,
+      // and group posts if they can read the group.
+      allow read: if (isSignedIn() && (
+        resource.data.visibility == "public"
+        || (resource.data.groupId is string && canReadGroup(resource.data.groupId))
+      )) || isAdmin();
+
+      // CREATE: signed-in; authorId must match; validate visibility; if groupId exists must be member.
+      allow create: if isSignedIn()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.visibility in ["public","members","private"]
+        && (
+          !(request.resource.data.groupId is string)
+          || isGroupMember(request.resource.data.groupId)
+        );
+
+      // UPDATE/DELETE: author only (or admin).  ✅ fixed parentheses
+      allow update, delete: if (isSignedIn() && resource.data.authorId == request.auth.uid) || isAdmin();
+    }
+
+    // ---------- comments ----------
+    match /posts/{postId}/comments/{commentId} {
+      function canReadPost() {
+        return (exists(/databases/$(database)/documents/posts/$(postId)) &&
+          (
+            get(/databases/$(database)/documents/posts/$(postId)).data.visibility == "public"
+            || (
+              get(/databases/$(database)/documents/posts/$(postId)).data.groupId is string
+              && canReadGroup(get(/databases/$(database)/documents/posts/$(postId)).data.groupId)
+            )
+          )
+        ) || isAdmin();
+      }
+
+      allow read: if isSignedIn() && canReadPost();
+
+      allow create: if isSignedIn()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 4000
+        && canReadPost();
+
+      // UPDATE/DELETE: author only (or admin). ✅ fixed parentheses
+      allow update, delete: if (isSignedIn() && resource.data.authorId == request.auth.uid) || isAdmin();
+    }
+
+    match /posts/{postId}/reactions/{uid} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSelf(uid);
+    }
+
+    // ---------- chats ----------
+    match /chats/{chatId} {
+      allow read: if isChatMember(chatId) || isAdmin();
+
+      allow create: if isSignedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.type in ["dm","group"];
+
+      allow update: if isChatMember(chatId) || isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
+    match /chats/{chatId}/members/{uid} {
+      allow read: if isChatMember(chatId) || isAdmin();
+
+      allow create: if isSelf(uid);
+
+      allow delete: if isSelf(uid) || isAdmin();
+
+      allow update: if isAdmin();
+    }
+
+    match /chats/{chatId}/messages/{messageId} {
+      allow read: if isChatMember(chatId) || isAdmin();
+
+      allow create: if isChatMember(chatId)
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 8000;
+
+      allow update, delete: if false;
+    }
+  }
+}
