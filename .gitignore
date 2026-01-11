@@ -1,0 +1,19 @@
+# Node / Next
+node_modules/
+.next/
+out/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+firebase-debug.log*
+firestore-debug.log*
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
