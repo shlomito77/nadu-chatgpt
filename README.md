@@ -1,20 +1,17 @@
-# NADU Complete Documentation
+# NADU — Docs GOLD (SSOT)
+_גרסת GOLD: 2026-01-12_
 
-## 30 מסמכים מוכנים לפיתוח
+## איך קוראים את זה
+- `/specs` = מה ולמה (מחייב את הקוד)
+- `/docs` = איך (מימוש/הקמה)
 
-✅ Architecture & Security (4)
-✅ Operations (9)  
-✅ Phase C Implementation (10)
-📁 Phase 2 deferred (5)
-✅ Core Principles (1)
-✅ Adoption Map
+## Start Here (MVP)
+1) קרא: `/specs/00_SCOPE_MVP.md`  
+2) קרא: `/specs/02_SECURITY_PRIVACY.md`  
+3) הרם לפי: `/docs/50_RUNBOOK.md`
 
-## Installation
-
-```bash
-tar -xzf NADU_ALL_DOCS.tar.gz
-cp -r NADU_ALL_DOCS/docs/* /path/to/project/docs/
-git add docs/ && git commit && git push
-```
-
-**Start:** `docs/phase-c/10_ROADMAP.md`
+## Quick Links
+- Scope: `/specs/00_SCOPE_MVP.md`
+- Rules: `/specs/01_PRODUCT_RULES.md`
+- Security: `/specs/02_SECURITY_PRIVACY.md`
+- Data Model: `/specs/03_DATA_MODEL.md`
