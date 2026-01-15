@@ -13,6 +13,9 @@ setGlobalOptions({
   region: "us-central1",
 });
 
+// --- Auth Triggers ---
+export { onUserCreate } from "./auth/onUserCreate";
+
 // --- Helpers ---
 function json(res: any, status: number, body: any) {
   res.status(status).set("Content-Type", "application/json").send(JSON.stringify(body));
