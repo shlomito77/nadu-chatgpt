@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 import { Post } from '@/types';
 import { PostCard } from '@/components/feed/PostCard';
 import { CreatePostButton } from '@/components/feed/CreatePostButton';
@@ -17,6 +17,7 @@ export default function FeedPage() {
       try {
         const q = query(
           collection(db, 'posts'),
+          where('visibility', '==', 'public'), // Match Security Rules
           orderBy('createdAt', 'desc'),
           limit(20)
         );
