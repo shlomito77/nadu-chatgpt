@@ -1,0 +1,19 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Profile photos
+    match /users/{uid}/photos/{photoId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == uid
+        && request.resource.size < 5 * 1024 * 1024  // 5MB
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Post media
+    match /posts/{postId}/media/{mediaId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Upload via Functions
+    }
+  }
+}
