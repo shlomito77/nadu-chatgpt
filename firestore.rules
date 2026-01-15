@@ -76,6 +76,12 @@ service cloud.firestore {
       allow create, delete: if isSelf(uid);
     }
 
+    // Blocked subcollection
+    match /users/{uid}/blocked/{targetUid} {
+      allow read: if isSelf(uid);
+      allow create, delete: if isSelf(uid);
+    }
+
     // Albums
     match /users/{uid}/albums/{albumId} {
       function canReadAlbum() {
@@ -230,6 +236,20 @@ service cloud.firestore {
     match /events/{eventId}/rsvps/{uid} {
       allow read: if isSignedIn();
       allow create, update, delete: if isSelf(uid);
+    }
+
+    // ---------- verification requests ----------
+    match /verificationRequests/{reqId} {
+      // User can create, but only admin can read all/update status
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow read: if (isSignedIn() && resource.data.uid == request.auth.uid) || isAdmin();
+      allow update: if isAdmin();
+    }
+
+    // ---------- reports ----------
+    match /reports/{reportId} {
+      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
+      allow read: if isAdmin(); // only admins see reports
     }
   }
 }

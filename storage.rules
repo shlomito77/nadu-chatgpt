@@ -24,25 +24,11 @@ service firebase.storage {
     }
 
     // Album Images
-    // Logic: storage rules cannot easily check firestore state (e.g. "isFollowing").
-    // So we rely on:
-    // 1. Obfuscated paths (UUIDs)
-    // 2. Client obtaining the URL from Firestore (where access IS controlled).
-    // But for "public" albums, we can allow open read.
-
-    // Public Albums
     match /users/{uid}/albums/public/{allPaths=**} {
       allow read: if true;
       allow write: if isSelf(uid) && isImage() && isValidSize();
     }
 
-    // Friends/Private Albums
-    // Read: Restricted to owner.
-    // Wait, if friends need to see it, they need read access.
-    // Since we can't check friendship here easily without firebase.storage.rules extensions (which are complex),
-    // we often use Signed URLs or allow authenticated read if the path is known (security by obscurity + auth).
-    // Better approach for MVP: Allow read if authenticated. Access to the *listing* of images is controlled by Firestore.
-    // If a user knows the exact filename of a private image, they can see it if logged in. This is a common MVP trade-off.
     match /users/{uid}/albums/{visibility}/{allPaths=**} {
       allow read: if isSignedIn();
       allow write: if isSelf(uid) && isImage() && isValidSize();
@@ -57,6 +43,16 @@ service firebase.storage {
     // Event Images
     match /events/{uid}/{allPaths=**} {
       allow read: if true;
+      allow write: if isSelf(uid) && isImage() && isValidSize();
+    }
+
+    // Verification Images (Write only by user, Read only by Admin - simulated by obscurity path in MVP or stricter logic)
+    // Actually, storage rules don't easily support "isAdmin" from Firestore.
+    // We will allow user to read/write their own verification folder. Admin can read everything if we use Admin SDK in backend,
+    // but client-side admin panel needs read access.
+    // For MVP: allow authenticated read if they know the path.
+    match /verification/{uid}/{allPaths=**} {
+      allow read: if isSignedIn();
       allow write: if isSelf(uid) && isImage() && isValidSize();
     }
 

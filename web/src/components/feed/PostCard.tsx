@@ -1,34 +1,38 @@
 import { Heart, MessageCircle, Share2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import ReportButton from "@/components/ui/ReportButton";
 
 interface PostProps {
   id: string;
   authorName: string;
-  authorId?: string; // Added prop
+  authorId?: string;
   text: string;
   imageUrl?: string;
   createdAt: any;
   likes?: number;
 }
 
-export default function PostCard({ authorName, authorId, text, imageUrl, likes = 0 }: PostProps) {
+export default function PostCard({ id, authorName, authorId, text, imageUrl, likes = 0 }: PostProps) {
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-      <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-lg font-bold">
-          {authorName[0]}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-lg font-bold">
+            {authorName[0]}
+            </div>
+            <div>
+            {authorId ? (
+                <Link href={`/profile/${authorId}`} className="font-bold text-sm hover:underline hover:text-indigo-400">
+                    {authorName}
+                </Link>
+            ) : (
+                <div className="font-bold text-sm">{authorName}</div>
+            )}
+            <div className="text-xs text-slate-500">2h ago</div>
+            </div>
         </div>
-        <div>
-          {authorId ? (
-              <Link href={`/profile/${authorId}`} className="font-bold text-sm hover:underline hover:text-indigo-400">
-                  {authorName}
-              </Link>
-          ) : (
-              <div className="font-bold text-sm">{authorName}</div>
-          )}
-          <div className="text-xs text-slate-500">2h ago</div>
-        </div>
+        <ReportButton targetId={id} targetType="post" />
       </div>
 
       {text && <p className="text-sm leading-relaxed text-slate-200">{text}</p>}

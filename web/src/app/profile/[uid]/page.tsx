@@ -7,9 +7,10 @@ import { useAuth } from "@/context/AuthContext";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useFollow } from "@/hooks/useFollow";
-import { UserPlus, UserMinus, ArrowLeft } from "lucide-react";
+import { useBlock } from "@/hooks/useBlock";
+import { UserPlus, UserMinus, ArrowLeft, Ban } from "lucide-react";
 import Link from "next/link";
-import AlbumList from "@/components/gallery/AlbumList"; // Reusing AlbumList
+import ReportButton from "@/components/ui/ReportButton";
 
 interface UserProfile {
   uid: string;
@@ -27,12 +28,11 @@ export default function PublicProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ posts: 0, following: 0, followers: 0 });
-  const [albums, setAlbums] = useState<any[]>([]); // simplified
 
   const { isFollowing, toggleFollow, loading: followLoading } = useFollow(targetUid);
+  const { isBlocked, toggleBlock, loading: blockLoading } = useBlock(targetUid);
 
   useEffect(() => {
-    // Redirect to self profile if viewing own
     if (user && user.uid === targetUid) {
         router.replace("/profile");
     }
@@ -42,30 +42,15 @@ export default function PublicProfilePage() {
     async function fetchData() {
         if (!targetUid) return;
         try {
-            // Fetch User Data
-            // MVP: Assuming public read of users/{uid} is allowed or specific public fields
             const docRef = doc(db, "users", targetUid);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 setProfile({ uid: docSnap.id, ...docSnap.data() } as UserProfile);
             }
 
-            // Fetch Stats
             const followingCount = (await getCountFromServer(collection(db, "users", targetUid, "following"))).data().count;
             const followersCount = (await getCountFromServer(collection(db, "users", targetUid, "followers"))).data().count;
             setStats({ posts: 0, following: followingCount, followers: followersCount });
-
-            // Fetch Albums (Firestore Rules will filter based on visibility/following)
-            // Note: We need a query that respects rules.
-            // Client SDK might fail if query doesn't match rules exactly or if rules do partial filtering.
-            // For MVP, assume we fetch all and Rules filter? No, Firestore doesn't filter results silently; it denies.
-            // We need separate queries or "list all" which is hard securely.
-            // Let's assume we fetch a "public_albums" subcollection or similar?
-            // Actually, the rules allow read if (public) OR (friends & following).
-            // Fetching *all* albums might fail if *any* is private.
-            // For MVP: Fetch only public albums initially for simplicity, or try fetch and catch.
-            // Better: Just don't show albums in public profile for this iteration to avoid complex query-rule mismatch errors
-            // unless we have a composite query.
 
         } catch (e) {
             console.error("Error loading profile", e);
@@ -79,13 +64,40 @@ export default function PublicProfilePage() {
   if (loading) return <div>Loading...</div>;
   if (!profile) return <div>User not found.</div>;
 
+  if (isBlocked) {
+      return (
+          <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+              <Ban size={48} className="text-red-500" />
+              <h1 className="text-xl font-bold">You blocked this user.</h1>
+              <button
+                onClick={toggleBlock}
+                className="text-indigo-400 hover:underline"
+              >
+                  Unblock to view profile
+              </button>
+          </div>
+      );
+  }
+
   return (
     <div className="flex flex-col space-y-6">
-        <div className="flex items-center">
-            <Link href="/" className="mr-4 text-slate-400">
-                <ArrowLeft />
-            </Link>
-            <h1 className="font-bold">Profile</h1>
+        <div className="flex items-center justify-between">
+            <div className="flex items-center">
+                <Link href="/" className="mr-4 text-slate-400">
+                    <ArrowLeft />
+                </Link>
+                <h1 className="font-bold">Profile</h1>
+            </div>
+            <div className="flex space-x-2">
+                <button
+                    onClick={toggleBlock}
+                    className="p-1 text-slate-500 hover:text-red-500 transition-colors"
+                    title="Block User"
+                >
+                    <Ban size={16} />
+                </button>
+                <ReportButton targetId={targetUid} targetType="user" />
+            </div>
         </div>
 
       {/* Header */}
