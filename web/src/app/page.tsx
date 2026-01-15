@@ -10,6 +10,7 @@ import Link from "next/link";
 interface Post {
   id: string;
   authorName?: string;
+  authorId?: string;
   text: string;
   imageUrl?: string;
   createdAt: any;
@@ -69,6 +70,7 @@ export default function Home() {
                     key={post.id}
                     id={post.id}
                     authorName={post.authorName || "Anonymous"}
+                    authorId={post.authorId}
                     text={post.text || "No content"}
                     imageUrl={post.imageUrl}
                     createdAt={post.createdAt}

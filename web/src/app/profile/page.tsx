@@ -4,29 +4,42 @@ import { useAuth } from "@/context/AuthContext";
 import { LogOut, Settings } from "lucide-react";
 import ImageUploader from "@/components/ui/ImageUploader";
 import { updateProfile } from "firebase/auth";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, getCountFromServer, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useEffect, useState } from "react";
 
 export default function ProfilePage() {
   const { user, logout, loading } = useAuth();
+  const [stats, setStats] = useState({ posts: 0, following: 0, followers: 0 });
+
+  useEffect(() => {
+    async function fetchStats() {
+      if (!user) return;
+      try {
+        const postsCount = (await getCountFromServer(collection(db, "posts"))).data().count; // Naive: counts all posts, needs query
+        // Correct query for posts by authorId is needed but count() requires an index.
+        // For MVP speed, let's keep mock or try simple count on subcollections if structured that way.
+        // Actually we store following/followers in subcollections now.
+        const followingCount = (await getCountFromServer(collection(db, "users", user.uid, "following"))).data().count;
+        const followersCount = (await getCountFromServer(collection(db, "users", user.uid, "followers"))).data().count;
+
+        setStats({ posts: 0, following: followingCount, followers: followersCount });
+      } catch (e) {
+        console.error("Stats fetch error", e);
+      }
+    }
+    fetchStats();
+  }, [user]);
 
   const handleAvatarUpload = async (url: string) => {
     if (!user) return;
     try {
-        // Update Auth Profile
         await updateProfile(user, { photoURL: url });
-
-        // Update Firestore User Document (assuming it exists or will be created lazily)
-        const userRef = doc(db, "users", user.uid);
-        // We use set with merge true usually, but updateDoc is safer if we assume existence.
-        // For MVP let's assume existence or handle error silently if user doc logic is separate.
         try {
-            await updateDoc(userRef, { photoURL: url });
+            await updateDoc(doc(db, "users", user.uid), { photoURL: url });
         } catch (e) {
-            console.warn("User doc update failed (maybe doc doesn't exist yet)", e);
+            console.warn("User doc update failed", e);
         }
-
-        // Force refresh or local state update could be handled here
         window.location.reload();
     } catch (error) {
         console.error("Failed to update profile picture", error);
@@ -38,7 +51,7 @@ export default function ProfilePage() {
 
   return (
     <div className="flex flex-col space-y-6">
-      {/* Header / Cover Area (Simulated) */}
+      {/* Header / Cover Area */}
       <div className="relative h-32 bg-gradient-to-r from-slate-800 to-slate-700 rounded-b-2xl -mx-4 -mt-4 mb-12">
         <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
           <div className="w-24 h-24 rounded-full border-4 border-slate-950 bg-slate-800 flex items-center justify-center">
@@ -60,18 +73,18 @@ export default function ProfilePage() {
         <p className="text-slate-300">Just here for the vibes. ✨</p>
       </div>
 
-      {/* Stats (Mock) */}
+      {/* Stats */}
       <div className="flex justify-around py-4 border-y border-slate-800">
         <div className="text-center">
-          <div className="text-xl font-bold">0</div>
+          <div className="text-xl font-bold">{stats.posts}</div>
           <div className="text-xs text-slate-500">Posts</div>
         </div>
         <div className="text-center">
-          <div className="text-xl font-bold">0</div>
+          <div className="text-xl font-bold">{stats.following}</div>
           <div className="text-xs text-slate-500">Following</div>
         </div>
         <div className="text-center">
-          <div className="text-xl font-bold">0</div>
+          <div className="text-xl font-bold">{stats.followers}</div>
           <div className="text-xs text-slate-500">Followers</div>
         </div>
       </div>

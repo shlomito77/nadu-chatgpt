@@ -1,16 +1,18 @@
 import { Heart, MessageCircle, Share2 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 interface PostProps {
   id: string;
   authorName: string;
+  authorId?: string; // Added prop
   text: string;
   imageUrl?: string;
   createdAt: any;
   likes?: number;
 }
 
-export default function PostCard({ authorName, text, imageUrl, likes = 0 }: PostProps) {
+export default function PostCard({ authorName, authorId, text, imageUrl, likes = 0 }: PostProps) {
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
       <div className="flex items-center space-x-3">
@@ -18,7 +20,13 @@ export default function PostCard({ authorName, text, imageUrl, likes = 0 }: Post
           {authorName[0]}
         </div>
         <div>
-          <div className="font-bold text-sm">{authorName}</div>
+          {authorId ? (
+              <Link href={`/profile/${authorId}`} className="font-bold text-sm hover:underline hover:text-indigo-400">
+                  {authorName}
+              </Link>
+          ) : (
+              <div className="font-bold text-sm">{authorName}</div>
+          )}
           <div className="text-xs text-slate-500">2h ago</div>
         </div>
       </div>
