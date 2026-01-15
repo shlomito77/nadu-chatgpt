@@ -2,18 +2,37 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Profile photos
-    match /users/{uid}/photos/{photoId} {
+    // Helper
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Profile photos (Public)
+    match /users/{uid}/public/{photoId} {
       allow read: if request.auth != null;
-      allow write: if request.auth.uid == uid
-        && request.resource.size < 5 * 1024 * 1024  // 5MB
+      allow write: if isOwner(uid)
+        && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }
 
-    // Post media
-    match /posts/{postId}/media/{mediaId} {
+    // Profile photos (Private)
+    match /users/{uid}/private/{photoId} {
+      allow read: if isOwner(uid); // Only owner for now
+      allow write: if isOwner(uid)
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Post media (Direct upload for now, validated by Function later ideally)
+    match /posts/{uid}/{photoId} {
       allow read: if request.auth != null;
-      allow write: if false; // Upload via Functions
+      allow write: if isOwner(uid);
+    }
+
+    // Event media
+    match /events/{uid}/{photoId} {
+      allow read: if request.auth != null;
+      allow write: if isOwner(uid);
     }
   }
 }

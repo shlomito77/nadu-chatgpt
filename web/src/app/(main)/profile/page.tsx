@@ -8,6 +8,7 @@ import { AppUser } from '@/types';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GalleryTab } from '@/components/profile/GalleryTab';
 import Link from 'next/link';
 
 export default function ProfilePage() {
@@ -51,10 +52,12 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <ProfileHeader user={profile} isOwnProfile={true} />
 
-      <div className="px-4">
+      <div className="px-4 space-y-6">
+        <GalleryTab uid={profile.uid} isOwnProfile={true} />
+
         <Button
           variant="outline"
           onClick={() => signOut()}
