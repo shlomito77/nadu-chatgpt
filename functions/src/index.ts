@@ -22,3 +22,6 @@ export { createPost } from "./post/createPost";
 export { sendMessage } from "./chat/sendMessage";
 export { createDM } from "./chat/createChat";
 
+// --- Event Functions ---
+export { createEvent } from "./event/createEvent";
+export { rsvpEvent } from "./event/rsvpEvent";

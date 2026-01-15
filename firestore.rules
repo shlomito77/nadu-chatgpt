@@ -71,6 +71,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Events collection
+    match /events/{eventId} {
+      allow read: if isAuthenticated() && !isBanned();
+      allow write: if false; // Use Functions
+    }
+
+    match /events/{eventId}/rsvps/{uid} {
+      allow read: if isAuthenticated() && !isBanned();
+      allow write: if false; // Use Functions
+    }
+
     // Mailbox threads
     match /mailboxThreads/{threadId} {
       allow read: if isAuthenticated()
