@@ -7,21 +7,24 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Send, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import ImageUploader from "@/components/ui/ImageUploader";
 
 export default function CreatePostPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string>("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !text.trim()) return;
+    if (!user || (!text.trim() && !imageUrl)) return;
 
     setLoading(true);
     try {
       await addDoc(collection(db, "posts"), {
         text: text.trim(),
+        imageUrl: imageUrl || null,
         authorId: user.uid,
         authorName: user.displayName || "Anonymous",
         createdAt: serverTimestamp(),
@@ -60,15 +63,24 @@ export default function CreatePostPage() {
           maxLength={500}
         />
 
+        <div className="h-32">
+            <ImageUploader
+                onUpload={setImageUrl}
+                pathPrefix={`posts/${user.uid}`}
+                currentImage={imageUrl}
+                className="w-32 h-32"
+            />
+        </div>
+
         <div className="flex justify-between items-center text-slate-500 text-sm px-2">
             <span>{text.length}/500</span>
         </div>
 
         <button
           type="submit"
-          disabled={loading || !text.trim()}
+          disabled={loading || (!text.trim() && !imageUrl)}
           className={`w-full py-4 rounded-xl font-bold flex items-center justify-center space-x-2 transition-all ${
-            loading || !text.trim()
+            loading || (!text.trim() && !imageUrl)
               ? "bg-slate-800 text-slate-500 cursor-not-allowed"
               : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
           }`}

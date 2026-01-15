@@ -1,11 +1,37 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { LogOut, Settings, Camera } from "lucide-react";
-import Image from "next/image";
+import { LogOut, Settings } from "lucide-react";
+import ImageUploader from "@/components/ui/ImageUploader";
+import { updateProfile } from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function ProfilePage() {
   const { user, logout, loading } = useAuth();
+
+  const handleAvatarUpload = async (url: string) => {
+    if (!user) return;
+    try {
+        // Update Auth Profile
+        await updateProfile(user, { photoURL: url });
+
+        // Update Firestore User Document (assuming it exists or will be created lazily)
+        const userRef = doc(db, "users", user.uid);
+        // We use set with merge true usually, but updateDoc is safer if we assume existence.
+        // For MVP let's assume existence or handle error silently if user doc logic is separate.
+        try {
+            await updateDoc(userRef, { photoURL: url });
+        } catch (e) {
+            console.warn("User doc update failed (maybe doc doesn't exist yet)", e);
+        }
+
+        // Force refresh or local state update could be handled here
+        window.location.reload();
+    } catch (error) {
+        console.error("Failed to update profile picture", error);
+    }
+  };
 
   if (loading) return <div>Loading...</div>;
   if (!user) return <div className="text-center mt-20">Please log in.</div>;
@@ -15,22 +41,14 @@ export default function ProfilePage() {
       {/* Header / Cover Area (Simulated) */}
       <div className="relative h-32 bg-gradient-to-r from-slate-800 to-slate-700 rounded-b-2xl -mx-4 -mt-4 mb-12">
         <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-          <div className="relative w-24 h-24 rounded-full border-4 border-slate-950 overflow-hidden bg-slate-800">
-            {user.photoURL ? (
-              <Image
-                src={user.photoURL}
-                alt={user.displayName || "User"}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-2xl font-bold bg-indigo-600">
-                {user.displayName?.charAt(0) || "U"}
-              </div>
-            )}
-            <button className="absolute bottom-0 right-0 p-1 bg-slate-900/50 backdrop-blur rounded-full text-white">
-                <Camera size={14} />
-            </button>
+          <div className="w-24 h-24 rounded-full border-4 border-slate-950 bg-slate-800 flex items-center justify-center">
+             <ImageUploader
+                onUpload={handleAvatarUpload}
+                pathPrefix={`users/${user.uid}/public`}
+                currentImage={user.photoURL}
+                isCircular={true}
+                className="w-full h-full"
+             />
           </div>
         </div>
       </div>

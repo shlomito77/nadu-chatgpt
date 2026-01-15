@@ -9,8 +9,9 @@ import Link from "next/link";
 
 interface Post {
   id: string;
-  authorName?: string; // Denormalized or fetched
-  text: string; // or content
+  authorName?: string;
+  text: string;
+  imageUrl?: string;
   createdAt: any;
 }
 
@@ -22,8 +23,6 @@ export default function Home() {
   useEffect(() => {
     async function fetchPosts() {
         try {
-            // MVP: Assuming 'posts' collection exists.
-            // If empty, we show empty state.
             const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(20));
             const snapshot = await getDocs(q);
             const data = snapshot.docs.map(doc => ({
@@ -71,6 +70,7 @@ export default function Home() {
                     id={post.id}
                     authorName={post.authorName || "Anonymous"}
                     text={post.text || "No content"}
+                    imageUrl={post.imageUrl}
                     createdAt={post.createdAt}
                 />
             ))}

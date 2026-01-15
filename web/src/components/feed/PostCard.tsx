@@ -5,11 +5,12 @@ interface PostProps {
   id: string;
   authorName: string;
   text: string;
+  imageUrl?: string;
   createdAt: any;
   likes?: number;
 }
 
-export default function PostCard({ authorName, text, likes = 0 }: PostProps) {
+export default function PostCard({ authorName, text, imageUrl, likes = 0 }: PostProps) {
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
       <div className="flex items-center space-x-3">
@@ -22,9 +23,18 @@ export default function PostCard({ authorName, text, likes = 0 }: PostProps) {
         </div>
       </div>
 
-      <p className="text-sm leading-relaxed text-slate-200">
-        {text}
-      </p>
+      {text && <p className="text-sm leading-relaxed text-slate-200">{text}</p>}
+
+      {imageUrl && (
+        <div className="relative w-full h-64 rounded-xl overflow-hidden bg-slate-950">
+            <Image
+                src={imageUrl}
+                alt="Post content"
+                fill
+                className="object-cover"
+            />
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex items-center space-x-6 text-slate-400 pt-2">
