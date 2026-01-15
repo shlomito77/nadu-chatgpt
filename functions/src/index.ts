@@ -19,6 +19,9 @@ export { onUserCreate } from "./auth/onUserCreate";
 // --- User Functions ---
 export { updateProfile } from "./user/updateProfile";
 
+// --- Post Functions ---
+export { createPost } from "./post/createPost";
+
 // --- Helpers ---
 function json(res: any, status: number, body: any) {
   res.status(status).set("Content-Type", "application/json").send(JSON.stringify(body));
