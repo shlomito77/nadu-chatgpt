@@ -164,5 +164,27 @@ service cloud.firestore {
 
       allow update, delete: if false;
     }
+
+    // ---------- events ----------
+    match /events/{eventId} {
+      // READ: authenticated users (for MVP events are public to community)
+      allow read: if isSignedIn() || isAdmin();
+
+      // CREATE: authenticated users
+      allow create: if isSignedIn()
+        && request.resource.data.organizerId == request.auth.uid;
+
+      // UPDATE: organizer only
+      allow update: if isSignedIn()
+        && resource.data.organizerId == request.auth.uid
+        && request.resource.data.organizerId == request.auth.uid; // prevent transfer ownership
+
+      allow delete: if isSignedIn() && resource.data.organizerId == request.auth.uid || isAdmin();
+    }
+
+    match /events/{eventId}/rsvps/{uid} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSelf(uid);
+    }
   }
 }
