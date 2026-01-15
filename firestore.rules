@@ -23,10 +23,16 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.token.tenureDays >= days;
     }
 
-    // Users collection
+    // Users collection (Public Profile Data)
     match /users/{uid} {
       allow read: if isAuthenticated() && !isBanned();
       allow write: if false; // ALWAYS use Functions
+
+      // Private Subcollection (PII)
+      match /private/{docId} {
+        allow read: if isOwner(uid); // Only owner can see email/private data
+        allow write: if false; // Use Functions
+      }
     }
 
     // Posts collection

@@ -9,6 +9,11 @@ export interface AppUser {
   displayName: string;
   photoURL?: string;
   role: 'dom' | 'sub' | 'switch' | 'curious' | 'other';
+  bio?: string;
+  age: number;
+  sex: string;
+  orientation?: string;
+  interests?: string[];
   createdAt: Date;
   updatedAt: Date;
 }

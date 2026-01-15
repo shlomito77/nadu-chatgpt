@@ -16,6 +16,9 @@ setGlobalOptions({
 // --- Auth Triggers ---
 export { onUserCreate } from "./auth/onUserCreate";
 
+// --- User Functions ---
+export { updateProfile } from "./user/updateProfile";
+
 // --- Helpers ---
 function json(res: any, status: number, body: any) {
   res.status(status).set("Content-Type", "application/json").send(JSON.stringify(body));
