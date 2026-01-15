@@ -1,0 +1,38 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    function isValidSize() {
+      return request.resource.size < 5 * 1024 * 1024; // 5MB
+    }
+
+    // User Profiles (Public read, Owner write)
+    match /users/{uid}/public/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSelf(uid) && isImage() && isValidSize();
+    }
+
+    // Post Images (Public read, Author write)
+    // Note: We organize post images under users/{uid}/posts/{filename} or just posts/{uid}/{filename}
+    match /posts/{uid}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSelf(uid) && isImage() && isValidSize();
+    }
+
+    // Fallback: Deny all
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
