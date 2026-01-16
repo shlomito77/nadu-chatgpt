@@ -43,71 +43,12 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/chats/$(chatId)/members/$(request.auth.uid));
     }
 
-    // Check if requester follows the target user
-    function isFollowing(targetUid) {
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/users/$(targetUid)/followers/$(request.auth.uid));
-    }
-
     // ---------- users ----------
     match /users/{uid} {
-      allow read: if isSelf(uid) || isAdmin(); // Public profile fields should be separate or handled via function
-      // For MVP, if we read users directly, we might expose too much.
-      // Ideally, public profile is a subset.
-      // Assuming client only reads what's needed or we trust MVP scope.
-      // Reverting to more open read for profile discovery?
-      // Let's allow read if signed in for MVP discovery, but real app needs "public_profile" doc.
-      allow read: if isSignedIn();
+      allow read: if isSelf(uid) || isAdmin();
       allow create: if isSelf(uid);
       allow update: if isSelf(uid) || isAdmin();
       allow delete: if false;
-    }
-
-    // Followers subcollection
-    match /users/{uid}/followers/{followerId} {
-      allow read: if isSignedIn();
-      // Only the follower can create/delete their own follow record
-      allow create, delete: if isSelf(followerId);
-    }
-
-    // Following subcollection (denormalized for ease of access)
-    match /users/{uid}/following/{targetUid} {
-      allow read: if isSignedIn();
-      allow create, delete: if isSelf(uid);
-    }
-
-    // Blocked subcollection
-    match /users/{uid}/blocked/{targetUid} {
-      allow read: if isSelf(uid);
-      allow create, delete: if isSelf(uid);
-    }
-
-    // Albums
-    match /users/{uid}/albums/{albumId} {
-      function canReadAlbum() {
-        return isSelf(uid)
-          || (resource.data.visibility == "public")
-          || (resource.data.visibility == "friends" && isFollowing(uid));
-      }
-
-      allow read: if canReadAlbum();
-      allow create, update, delete: if isSelf(uid);
-
-      // Photos subcollection (inherits visibility logic, but resource.data refers to photo)
-      // So we need to check the parent album's visibility.
-      // get() costs money, but essential here.
-      match /photos/{photoId} {
-        allow read: if isSelf(uid)
-          || (
-            get(/databases/$(database)/documents/users/$(uid)/albums/$(albumId)).data.visibility == "public"
-          )
-          || (
-            get(/databases/$(database)/documents/users/$(uid)/albums/$(albumId)).data.visibility == "friends"
-            && isFollowing(uid)
-          );
-
-        allow create, update, delete: if isSelf(uid);
-      }
     }
 
     // ---------- groups ----------
@@ -137,11 +78,14 @@ service cloud.firestore {
 
     // ---------- posts ----------
     match /posts/{postId} {
+      // READ: allow signed-in users to read public posts,
+      // and group posts if they can read the group.
       allow read: if (isSignedIn() && (
         resource.data.visibility == "public"
         || (resource.data.groupId is string && canReadGroup(resource.data.groupId))
       )) || isAdmin();
 
+      // CREATE: signed-in; authorId must match; validate visibility; if groupId exists must be member.
       allow create: if isSignedIn()
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.visibility in ["public","members","private"]
@@ -150,6 +94,7 @@ service cloud.firestore {
           || isGroupMember(request.resource.data.groupId)
         );
 
+      // UPDATE/DELETE: author only (or admin).  ✅ fixed parentheses
       allow update, delete: if (isSignedIn() && resource.data.authorId == request.auth.uid) || isAdmin();
     }
 
@@ -176,6 +121,7 @@ service cloud.firestore {
         && request.resource.data.text.size() <= 4000
         && canReadPost();
 
+      // UPDATE/DELETE: author only (or admin). ✅ fixed parentheses
       allow update, delete: if (isSignedIn() && resource.data.authorId == request.auth.uid) || isAdmin();
     }
 
@@ -217,39 +163,6 @@ service cloud.firestore {
         && request.resource.data.text.size() <= 8000;
 
       allow update, delete: if false;
-    }
-
-    // ---------- events ----------
-    match /events/{eventId} {
-      allow read: if isSignedIn() || isAdmin();
-
-      allow create: if isSignedIn()
-        && request.resource.data.organizerId == request.auth.uid;
-
-      allow update: if isSignedIn()
-        && resource.data.organizerId == request.auth.uid
-        && request.resource.data.organizerId == request.auth.uid;
-
-      allow delete: if isSignedIn() && resource.data.organizerId == request.auth.uid || isAdmin();
-    }
-
-    match /events/{eventId}/rsvps/{uid} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isSelf(uid);
-    }
-
-    // ---------- verification requests ----------
-    match /verificationRequests/{reqId} {
-      // User can create, but only admin can read all/update status
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
-      allow read: if (isSignedIn() && resource.data.uid == request.auth.uid) || isAdmin();
-      allow update: if isAdmin();
-    }
-
-    // ---------- reports ----------
-    match /reports/{reportId} {
-      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
-      allow read: if isAdmin(); // only admins see reports
     }
   }
 }

@@ -5,13 +5,14 @@ import { Flag, X, AlertTriangle } from "lucide-react";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 interface ReportButtonProps {
   targetId: string;
   targetType: "post" | "user" | "comment" | "chat";
 }
 
-export default function ReportButton({ targetId, targetType }: ReportButtonProps) {
+export function ReportButton({ targetId, targetType }: ReportButtonProps) {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [reason, setReason] = useState("spam");
@@ -30,9 +31,10 @@ export default function ReportButton({ targetId, targetType }: ReportButtonProps
         createdAt: serverTimestamp()
       });
       setIsOpen(false);
-      alert("Report submitted.");
+      toast.success("Report submitted. Thank you for keeping us safe.");
     } catch (e) {
       console.error("Report error", e);
+      toast.error("Failed to submit report.");
     } finally {
       setLoading(false);
     }

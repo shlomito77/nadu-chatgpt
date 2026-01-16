@@ -1,83 +1,115 @@
 "use client";
 
-import PostCard from "@/components/feed/PostCard";
 import { useEffect, useState } from "react";
-import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-import Link from "next/link";
+import { db } from "@/lib/firebase";
+import { collection, query, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
+import { PostCard } from "@/components/ui/PostCard";
+import { PostSkeleton } from "@/components/ui/Skeleton";
+import { toast } from "sonner";
 
 interface Post {
   id: string;
-  authorName?: string;
-  authorId?: string;
-  text: string;
-  imageUrl?: string;
-  createdAt: any;
+  content: string;
+  authorId: string;
+  authorName: string;
+  authorPhotoURL?: string;
+  imageURL?: string;
+  createdAt: Timestamp;
+  likes: number;
+  commentsCount: number;
 }
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, loading: authLoading, signInWithGoogle } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingPosts, setLoadingPosts] = useState(true);
 
   useEffect(() => {
-    async function fetchPosts() {
-        try {
-            const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(20));
-            const snapshot = await getDocs(q);
-            const data = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            })) as Post[];
-            setPosts(data);
-        } catch (e) {
-            console.error("Error fetching posts:", e);
-        } finally {
-            setLoading(false);
-        }
+    if (!user) {
+        setLoadingPosts(false);
+        return;
     }
 
-    fetchPosts();
-  }, []);
+    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const newPosts = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Post[];
+      setPosts(newPosts);
+      setLoadingPosts(false);
+    }, (error) => {
+      console.error("Error fetching posts:", error);
+      toast.error("Failed to load feed");
+      setLoadingPosts(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  if (authLoading) {
+    return (
+      <div className="max-w-md mx-auto p-4 space-y-4 pt-6 pb-24">
+         <PostSkeleton />
+         <PostSkeleton />
+         <PostSkeleton />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center">
+        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+          The Cage
+        </h1>
+        <p className="text-slate-400 mb-8 max-w-sm">
+          Join the community. Share your moments. Connect with friends.
+        </p>
+        <button
+          onClick={() => signInWithGoogle()}
+          className="bg-slate-100 text-slate-900 px-6 py-3 rounded-full font-bold hover:bg-white transition-colors"
+        >
+          Sign in with Google
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Create Post Prompt (Mobile style) */}
-      {user && (
-        <div className="flex items-center space-x-3 bg-slate-900 p-4 rounded-xl border border-slate-800">
-            <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center font-bold">
-                {user.displayName?.[0] || "U"}
-            </div>
-            <Link href="/create" className="flex-1 bg-slate-950 hover:bg-slate-800 text-slate-500 rounded-full py-2 px-4 text-sm transition-colors">
-                What's happening?
-            </Link>
-        </div>
-      )}
+    <main className="max-w-md mx-auto p-4 space-y-4 pt-6 pb-24">
+      {/* Header / Create Post Placeholder */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-xl font-bold text-slate-100">Your Feed</h1>
+      </div>
 
-      {/* Feed */}
-      {loading ? (
-        <div className="text-center py-10 text-slate-500">Loading feed...</div>
-      ) : posts.length === 0 ? (
-        <div className="text-center py-20 text-slate-500">
-            <p>No posts yet.</p>
-            <p className="text-xs mt-2">Be the first to share something!</p>
-        </div>
-      ) : (
+      {loadingPosts ? (
         <div className="space-y-4">
-            {posts.map(post => (
-                <PostCard
-                    key={post.id}
-                    id={post.id}
-                    authorName={post.authorName || "Anonymous"}
-                    authorId={post.authorId}
-                    text={post.text || "No content"}
-                    imageUrl={post.imageUrl}
-                    createdAt={post.createdAt}
-                />
-            ))}
+          <PostSkeleton />
+          <PostSkeleton />
+          <PostSkeleton />
+        </div>
+      ) : posts.length > 0 ? (
+        posts.map((post) => (
+          <PostCard
+            key={post.id}
+            id={post.id}
+            content={post.content}
+            authorId={post.authorId}
+            authorName={post.authorName}
+            authorPhotoURL={post.authorPhotoURL}
+            imageURL={post.imageURL}
+            createdAt={post.createdAt}
+            likes={post.likes || 0}
+            commentsCount={post.commentsCount || 0}
+          />
+        ))
+      ) : (
+        <div className="text-center py-10 text-slate-500">
+          No posts yet. Be the first to post!
         </div>
       )}
-    </div>
+    </main>
   );
 }
