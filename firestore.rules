@@ -19,8 +19,10 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.token.banned == true;
     }
 
-    function hasMinimumTenure(days) {
-      return isAuthenticated() && request.auth.token.tenureDays >= days;
+    // Check if user is a participant in the parent chat document
+    function isChatParticipant(chatId) {
+      return isAuthenticated() &&
+        request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
     }
 
     // Users collection (Public Profile Data)
@@ -32,6 +34,15 @@ service cloud.firestore {
       match /private/{docId} {
         allow read: if isOwner(uid); // Only owner can see email/private data
         allow write: if false; // Use Functions
+      }
+
+      // Notifications Subcollection
+      match /notifications/{notificationId} {
+        allow read: if isOwner(uid);
+        // Allow owner to mark as read (update only isRead field)
+        allow update: if isOwner(uid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
+        allow create, delete: if false; // Use Functions
       }
     }
 
@@ -62,12 +73,9 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Messages subcollection
+    // Messages subcollection - SECURED
     match /chats/{chatId}/messages/{messageId} {
-      allow read: if isAuthenticated()
-        && !isBanned()
-        && hasMinimumTenure(7); // 7-day tenure for chat
-
+      allow read: if isChatParticipant(chatId) && !isBanned();
       allow write: if false;
     }
 

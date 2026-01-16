@@ -25,3 +25,10 @@ export { createDM } from "./chat/createChat";
 // --- Event Functions ---
 export { createEvent } from "./event/createEvent";
 export { rsvpEvent } from "./event/rsvpEvent";
+
+// --- Moderation Functions ---
+export { createReport } from "./moderation/createReport";
+export { resolveReport } from "./moderation/resolveReport";
+
+// --- Notification Triggers ---
+export { onMessageCreated } from "./notifications/onNotificationTrigger";

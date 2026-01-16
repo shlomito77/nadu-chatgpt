@@ -1,8 +1,11 @@
 import { AppUser } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Settings, Shield, User as UserIcon } from 'lucide-react';
+import { Settings, Shield, User as UserIcon, MessageCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/cn';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 interface ProfileHeaderProps {
   user: AppUser;
@@ -10,6 +13,24 @@ interface ProfileHeaderProps {
 }
 
 export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
+  const router = useRouter();
+  const [startingChat, setStartingChat] = useState(false);
+
+  const handleStartChat = async () => {
+    if (isOwnProfile) return;
+    setStartingChat(true);
+    try {
+      const functions = getFunctions();
+      const createDM = httpsCallable(functions, 'createDM');
+      const result = await createDM({ targetUid: user.uid });
+      const data = result.data as { chatId: string };
+      router.push(`/chat/room?id=${data.chatId}`);
+    } catch (error) {
+      console.error('Error starting chat:', error);
+      alert('שגיאה ביצירת שיחה');
+      setStartingChat(false);
+    }
+  };
   // Role colors
   const roleColors = {
     dom: 'bg-red-950/50 text-red-400 border-red-900',
@@ -49,13 +70,24 @@ export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
           </div>
 
           {/* Actions */}
-          {isOwnProfile && (
+          {isOwnProfile ? (
             <Link href="/profile/edit">
               <Button variant="outline" size="sm" className="bg-slate-950/50 backdrop-blur">
                 <Settings className="h-4 w-4 ml-2" />
                 עריכה
               </Button>
             </Link>
+          ) : (
+            <Button
+              variant="primary"
+              size="sm"
+              className="bg-indigo-600 hover:bg-indigo-700 shadow-lg"
+              onClick={handleStartChat}
+              disabled={startingChat}
+            >
+              {startingChat ? <Loader2 className="h-4 w-4 ml-2 animate-spin" /> : <MessageCircle className="h-4 w-4 ml-2" />}
+              הודעה
+            </Button>
           )}
         </div>
 

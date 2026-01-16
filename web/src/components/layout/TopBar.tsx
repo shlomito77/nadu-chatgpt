@@ -1,7 +1,8 @@
 'use client';
 
-import { Bell, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { NotificationsMenu } from '@/components/layout/NotificationsMenu';
 
 export function TopBar() {
   return (
@@ -17,10 +18,7 @@ export function TopBar() {
           <Button variant="ghost" size="icon" className="text-slate-400">
             <Search className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" className="text-slate-400 relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500" />
-          </Button>
+          <NotificationsMenu />
         </div>
       </div>
     </header>
