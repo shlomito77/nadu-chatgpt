@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, User, PlusSquare } from "lucide-react"; // Ideally install lucide-react, but we can use SVG for now if not available.
+import { Home, User, PlusSquare } from "lucide-react";
 
 // Simple SVGs for icons to avoid dependency for now
 const HomeIcon = ({ className }: { className?: string }) => (
@@ -22,7 +22,7 @@ export function BottomNav() {
 
   const links = [
     { href: "/feed", label: "Feed", icon: HomeIcon },
-    { href: "/create-post", label: "Post", icon: PlusIcon }, // Or trigger modal
+    // { href: "/create-post", label: "Post", icon: PlusIcon }, // Or trigger modal, handled inline in Feed currently
     { href: "/profile", label: "Profile", icon: UserIcon },
   ];
 
