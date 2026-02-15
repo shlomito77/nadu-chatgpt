@@ -25,3 +25,25 @@ export interface UserDoc {
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
+
+export interface PostDoc {
+  id: string;
+  authorUid: string;
+  authorDisplayName: string;
+  authorPhotoURL?: string;
+
+  title: string;
+  content: string;
+  images?: { url: string; path: string }[];
+
+  isAnonymous: boolean;
+  visibility: 'public' | 'members';
+  tags: string[];
+
+  commentCount: number;
+  likeCount: number;
+  score: number;
+
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
