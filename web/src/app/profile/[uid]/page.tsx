@@ -8,6 +8,7 @@ import { UserDoc } from "@/types/db";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { BottomNav } from "@/components/BottomNav";
+import { ReportDialog } from "@/components/moderation/ReportDialog"; // Import ReportDialog
 import { useParams, useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,7 +72,7 @@ export default function PublicProfilePage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       <div className="max-w-md mx-auto p-4 pt-8">
-        <div className="flex flex-col items-center mb-8">
+        <div className="flex flex-col items-center mb-8 relative">
           <Avatar
             src={profile.photoURL}
             fallback={profile.displayName.charAt(0)}
@@ -81,15 +82,23 @@ export default function PublicProfilePage() {
           <h1 className="text-2xl font-bold">{profile.displayName}</h1>
           {profile.region && <p className="text-gray-400 text-sm mt-1">{profile.region}</p>}
 
-          {!isOwnProfile && (
-            <Button
-              className="mt-6 w-32"
-              onClick={handleMessage}
-              disabled={chatLoading}
-            >
-              {chatLoading ? "Starting..." : "Message"}
-            </Button>
-          )}
+          <div className="flex gap-2 mt-6">
+            {!isOwnProfile && (
+              <>
+                <Button
+                  className="w-32"
+                  onClick={handleMessage}
+                  disabled={chatLoading}
+                >
+                  {chatLoading ? "Starting..." : "Message"}
+                </Button>
+                {/* Report User Button */}
+                <div className="flex items-center">
+                   <ReportDialog targetType="user" targetId={uid as string} />
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="bg-gray-900 rounded-lg p-6 space-y-4">
