@@ -2,17 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, functions } from "@/lib/firebase";
+import { httpsCallable } from "firebase/functions";
 import { UserDoc } from "@/types/db";
 import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
 import { BottomNav } from "@/components/BottomNav";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function PublicProfilePage() {
   const { uid } = useParams(); // Get uid from URL
+  const { user } = useAuth();
+  const router = useRouter();
   const [profile, setProfile] = useState<UserDoc | null>(null);
   const [loading, setLoading] = useState(true);
+  const [chatLoading, setChatLoading] = useState(false);
 
   useEffect(() => {
     if (!uid) return;
@@ -37,10 +43,30 @@ export default function PublicProfilePage() {
     fetchProfile();
   }, [uid]);
 
+  const handleMessage = async () => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    setChatLoading(true);
+    try {
+      const createChat = httpsCallable(functions, "createChat");
+      // Use the function to get or create chat ID
+      const result = await createChat({ targetUid: uid });
+      const { chatId } = result.data as { chatId: string };
+      router.push(`/chat/${chatId}`);
+    } catch (error) {
+      console.error("Failed to start chat", error);
+      alert("Could not start chat.");
+      setChatLoading(false);
+    }
+  };
+
   if (loading) return <div className="p-8 text-center text-white">Loading...</div>;
   if (!profile) return <div className="p-8 text-center text-white">User not found.</div>;
 
   const joinedDate = profile.createdAt?.toDate ? profile.createdAt.toDate() : new Date();
+  const isOwnProfile = user?.uid === uid;
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
@@ -54,6 +80,16 @@ export default function PublicProfilePage() {
           />
           <h1 className="text-2xl font-bold">{profile.displayName}</h1>
           {profile.region && <p className="text-gray-400 text-sm mt-1">{profile.region}</p>}
+
+          {!isOwnProfile && (
+            <Button
+              className="mt-6 w-32"
+              onClick={handleMessage}
+              disabled={chatLoading}
+            >
+              {chatLoading ? "Starting..." : "Message"}
+            </Button>
+          )}
         </div>
 
         <div className="bg-gray-900 rounded-lg p-6 space-y-4">
